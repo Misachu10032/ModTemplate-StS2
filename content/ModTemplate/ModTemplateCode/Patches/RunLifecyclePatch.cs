@@ -1,5 +1,10 @@
+using Godot;
 using HarmonyLib;
+using MegaCrit.Sts2.Core.Hooks;
 using MegaCrit.Sts2.Core.Nodes;
+using MegaCrit.Sts2.Core.Nodes.Screens.MainMenu;
+using MegaCrit.Sts2.Core.Rooms;
+using MegaCrit.Sts2.Core.Runs;
 using ModTemplate.ModTemplateCode.Nodes;
 using ModTemplate.ModTemplateCode.Snapshots;
 
@@ -25,24 +30,33 @@ static class RunEndPatch
     [HarmonyPrefix]
     static void Prefix()
     {
-        try { SnapshotManager.OnRunEnd(); }
+        try { SnapshotManager.OnRunEnd(); SnapshotUi.Teardown(); }
         catch (Exception ex) { MainFile.Logger.Info($"[Snapshot] RunEnd error: {ex.Message}"); }
     }
 }
 
-// Add our input-listening node as a child of NGame so it persists for the whole session.
-[HarmonyPatch(typeof(NGame), "_Ready")]
-static class NGameReadyPatch
+// Auto-save a snapshot at the start of every floor.
+// Hook.BeforeRoomEntered is the game's canonical hook point fired before any room logic runs.
+[HarmonyPatch(typeof(Hook), nameof(Hook.BeforeRoomEntered))]
+static class FloorSnapshotPatch
 {
     [HarmonyPostfix]
-    static void Postfix(NGame __instance)
+    static void Postfix(IRunState runState, AbstractRoom room)
     {
-        try
-        {
-            if (!__instance.HasNode("SnapshotInputNode"))
-                __instance.AddChild(new SnapshotInputNode { Name = "SnapshotInputNode" });
-            MainFile.Logger.Info("[Snapshot] Input node added to NGame (F5 = save, F9 = restore).");
-        }
-        catch (Exception ex) { MainFile.Logger.Info($"[Snapshot] NGameReady error: {ex.Message}"); }
+        try { SnapshotPatch.SaveSnapshot(runState.TotalFloor); }
+        catch (Exception ex) { MainFile.Logger.Info($"[Snapshot] FloorSnapshot error: {ex.Message}"); }
+    }
+}
+
+// Auto-press Continue when the main menu loads after a restore so the
+// player lands directly back in the restored run without any manual click.
+[HarmonyPatch(typeof(NMainMenuContinueButton), "_Ready")]
+static class AutoContinuePatch
+{
+    [HarmonyPostfix]
+    static void Postfix(NMainMenuContinueButton __instance)
+    {
+        if (!SnapshotManager.IsRestoring) return;
+        Callable.From(() => __instance.EmitSignal(Button.SignalName.Pressed)).CallDeferred();
     }
 }
