@@ -34,9 +34,7 @@ internal static class CheckpointUi
     {
         if (_hudButton == null) return;
 
-        _hudButton.Text = CheckpointManager.CheckpointCount > 0
-            ? $"Checkpoints ({CheckpointManager.CheckpointCount})"
-            : "Checkpoint";
+        _hudButton.Text = "Checkpoint";
 
         if (Input.IsKeyPressed(Key.L))
         {
