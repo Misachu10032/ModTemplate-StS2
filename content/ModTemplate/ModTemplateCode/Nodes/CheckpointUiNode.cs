@@ -29,15 +29,6 @@ internal static class CheckpointUi
         MainFile.Logger.Info("[Checkpoint] CheckpointUi initialized.");
     }
 
-    // Called from RunEndPatch — clears stale references when the run ends.
-    public static void Teardown()
-    {
-        _hudLabel = null;
-        _panel    = null;
-        _list     = null;
-        _lHeld    = 0;
-    }
-
     // Called every frame from NRunProcessPatch.
     public static void Update(double delta)
     {
@@ -86,8 +77,8 @@ internal static class CheckpointUi
         _hudLabel.AnchorRight  = 1f;
         _hudLabel.AnchorTop    = 0f;
         _hudLabel.AnchorBottom = 0f;
-        _hudLabel.OffsetLeft   = -260f;
-        _hudLabel.OffsetRight  = -8f;
+        _hudLabel.OffsetLeft   = -560f;
+        _hudLabel.OffsetRight  = -300f;
         _hudLabel.OffsetTop    = 8f;
         _hudLabel.OffsetBottom = 32f;
         root.AddChild(_hudLabel);
@@ -140,7 +131,7 @@ internal static class CheckpointUi
         var cols = new HBoxContainer();
         outer.AddChild(cols);
         cols.AddChild(ColLabel("Floor", 80));
-        cols.AddChild(ColLabel("Saved at", 180));
+        cols.AddChild(ColLabel("Saved at", 150));
         cols.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
         outer.AddChild(new HSeparator());
 
@@ -187,7 +178,7 @@ internal static class CheckpointUi
             var row = new HBoxContainer();
             _list.AddChild(row);
             row.AddChild(new Label { Text = $"Floor {cp.Floor,2}",                         CustomMinimumSize = new Vector2(80,  0) });
-            row.AddChild(new Label { Text = cp.SavedAt.ToLocalTime().ToString("HH:mm:ss"), CustomMinimumSize = new Vector2(180, 0) });
+            row.AddChild(new Label { Text = cp.SavedAt.ToLocalTime().ToString("MM/dd  HH:mm:ss"), CustomMinimumSize = new Vector2(150, 0) });
             row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
 
             var btn = new Button { Text = "Load Checkpoint" };

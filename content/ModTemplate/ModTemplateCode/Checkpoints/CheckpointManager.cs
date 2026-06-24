@@ -13,6 +13,8 @@ public static class CheckpointManager
     // Floor → (complete run state at that floor, time it was captured)
     private static readonly Dictionary<int, (SerializableRun RunSave, DateTime SavedAt)> _checkpoints = new();
 
+    private static bool _isLoadingCheckpoint;
+
     private static string CheckpointRoot => Path.Combine(OS.GetUserDataDir(), "mod_checkpoints");
     private static string ActiveDir      => Path.Combine(CheckpointRoot, "active");
 
@@ -29,6 +31,7 @@ public static class CheckpointManager
 
     public static void OnRunContinue()
     {
+        if (_isLoadingCheckpoint) return;
         _checkpoints.Clear();
         if (Directory.Exists(ActiveDir))
         {
@@ -147,6 +150,12 @@ public static class CheckpointManager
             var saveManager = SaveManager.Instance;
             var runManager  = RunManager.Instance;
 
+            if (game == null || saveManager == null || runManager == null)
+            {
+                MainFile.Logger.Info("[Checkpoint] LoadAsync: required instances not available.");
+                return;
+            }
+
             // Wait for any pending save so we don't race against an in-flight write.
             var pending = saveManager.CurrentRunSaveTask;
             if (pending != null)
@@ -161,7 +170,8 @@ public static class CheckpointManager
             // Reconstruct run state directly from the captured object — no file I/O needed.
             RunState runState = RunState.FromSerializable(runSave);
 
-            await game.Transition.FadeOut();
+            var transition = game.Transition;
+            if (transition != null) await transition.FadeOut();
 
             runManager.CleanUp();
 
@@ -179,8 +189,11 @@ public static class CheckpointManager
                 MainFile.Logger.Info("[Checkpoint] LoadAsync: SetUpSavedSingleplayer not found.");
             }
 
-            await game.LoadRun(runState, runSave.PreFinishedRoom);
-            await game.Transition.FadeIn();
+            _isLoadingCheckpoint = true;
+            try { await game.LoadRun(runState, runSave.PreFinishedRoom); }
+            finally { _isLoadingCheckpoint = false; }
+
+            if (transition != null) await transition.FadeIn();
 
             MainFile.Logger.Info($"[Checkpoint] Load complete for floor {floor}.");
         }
