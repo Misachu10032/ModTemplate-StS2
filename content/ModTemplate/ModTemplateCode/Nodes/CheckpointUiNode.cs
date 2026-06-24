@@ -11,7 +11,7 @@ namespace ModTemplate.ModTemplateCode.Nodes;
 // Input polling and HUD updates are driven by a Harmony patch on NRun._Process.
 internal static class CheckpointUi
 {
-    private static Label?         _hudLabel;
+    private static Button?        _hudButton;
     private static Control?       _panel;
     private static VBoxContainer? _list;
 
@@ -32,11 +32,11 @@ internal static class CheckpointUi
     // Called every frame from NRunProcessPatch.
     public static void Update(double delta)
     {
-        if (_hudLabel == null) return;
+        if (_hudButton == null) return;
 
-        _hudLabel.Text = CheckpointManager.CheckpointCount > 0
-            ? $"[Checkpoints: {CheckpointManager.CheckpointCount}]  hold L"
-            : "[Checkpoint]  hold L";
+        _hudButton.Text = CheckpointManager.CheckpointCount > 0
+            ? $"Checkpoints ({CheckpointManager.CheckpointCount})"
+            : "Checkpoint";
 
         if (Input.IsKeyPressed(Key.L))
         {
@@ -68,20 +68,17 @@ internal static class CheckpointUi
         root.MouseFilter = Control.MouseFilterEnum.Ignore;
         layer.AddChild(root);
 
-        _hudLabel = new Label
-        {
-            HorizontalAlignment = HorizontalAlignment.Right,
-            MouseFilter         = Control.MouseFilterEnum.Ignore,
-        };
-        _hudLabel.AnchorLeft   = 1f;
-        _hudLabel.AnchorRight  = 1f;
-        _hudLabel.AnchorTop    = 0f;
-        _hudLabel.AnchorBottom = 0f;
-        _hudLabel.OffsetLeft   = -560f;
-        _hudLabel.OffsetRight  = -300f;
-        _hudLabel.OffsetTop    = 8f;
-        _hudLabel.OffsetBottom = 32f;
-        root.AddChild(_hudLabel);
+        _hudButton = new Button { Text = "Checkpoint" };
+        _hudButton.AnchorLeft   = 0.5f;
+        _hudButton.AnchorRight  = 0.5f;
+        _hudButton.AnchorTop    = 0f;
+        _hudButton.AnchorBottom = 0f;
+        _hudButton.OffsetLeft   = -100f;
+        _hudButton.OffsetRight  = 100f;
+        _hudButton.OffsetTop    = 15f;
+        _hudButton.OffsetBottom = 40f;
+        _hudButton.Pressed      += TogglePanel;
+        root.AddChild(_hudButton);
 
         _panel = new Control();
         _panel.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -177,11 +174,11 @@ internal static class CheckpointUi
         {
             var row = new HBoxContainer();
             _list.AddChild(row);
-            row.AddChild(new Label { Text = $"Floor {cp.Floor,2}",                         CustomMinimumSize = new Vector2(80,  0) });
+            row.AddChild(new Label { Text = $"Floor {cp.Floor,2}",                              CustomMinimumSize = new Vector2(80,  0) });
             row.AddChild(new Label { Text = cp.SavedAt.ToLocalTime().ToString("MM/dd  HH:mm:ss"), CustomMinimumSize = new Vector2(150, 0) });
             row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
 
-            var btn = new Button { Text = "Load Checkpoint" };
+            var btn = new Button { Text = "Load" };
             var captured = cp;
             btn.Pressed += () =>
             {
